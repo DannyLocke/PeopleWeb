@@ -59,11 +59,11 @@ public class Main {
         Spark.get(
                 "/person",
                 ((request, response) -> {
-                    HashMap m = new HashMap();
-                    Integer id = Integer.valueOf(request.queryParams("id"));
+                    HashMap peopleHashMap = new HashMap();
+                    int id = Integer.valueOf(request.queryParams("id"));
                     Person x = peopleList.get(id - 1);
-                    m.put("person", id);
-                    return new ModelAndView(x, "person.html");
+                    peopleHashMap.put("person", x);
+                    return new ModelAndView(peopleHashMap, "Person.html");
                 }),
 
                 new MustacheTemplateEngine()
