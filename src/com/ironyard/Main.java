@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -18,14 +17,19 @@ public class Main {
     public static void main(String[] args) throws FileNotFoundException {
         //read csv file
         File f = new File("peopleRawData.csv");
-        Scanner csvRead = new Scanner (f);
+        Scanner fileScanner = new Scanner (f);
 
         //add each person from csv to array list
-        while (csvRead.hasNext()){
-            String person = csvRead.nextLine();
+        while (fileScanner.hasNext()){
+            String person = fileScanner.nextLine();
             String [] attributes = person.split("\\,");
-            Person eachPerson = new Person (attributes [0], attributes [1], attributes [2], attributes [3], attributes [4], attributes[5]);
-            peopleList.add(eachPerson);
+
+            //check for 1st line (column headers)
+            if(!"id".equals(attributes[0])){
+                Person eachPerson = new Person (attributes [0], attributes [1], attributes [2], attributes [3], attributes [4], attributes[5]);
+                peopleList.add(eachPerson);
+            }
+
         }//end while loop
 
         Spark.init();
@@ -34,27 +38,35 @@ public class Main {
                 "/",
                 ((request, response) -> {
 
-                    String offsetString;
-                    int offsetInt;
-                    offsetString = request.queryParams("offset");
-                    if(offsetString == null){
-                        offsetString = "0";
+                    String offsetString = request.queryParams("offset");
+                    int offsetInt = 0;
+
+                    if(offsetString != null && !offsetString.isEmpty()){
+                        offsetInt = Integer.parseInt(offsetString);
                     }
 
-                    offsetInt = Integer.parseInt(offsetString);
-                    List<Person> offsetList;
+                    ArrayList<Person> offsetList = new ArrayList<>();
 
-                    offsetList = peopleList.subList(offsetInt, (offsetInt + 20));
+                    for (int i=0; i<20; i++){
+                        offsetList.add(peopleList.get(offsetInt+i));
+                    }
 
                     HashMap list = new HashMap();
                     list.put("peopleRawData", offsetList);
 
-                    list.put("nextOffset", (offsetInt + 20));
-                    list.put("previousOffset", (offsetInt +- 20));
+                    //PREVIOUS
+                    if(offsetInt-20 >= 0){
+                        list.put("previousOffset", offsetInt - 20);
+                    }
+
+                    //NEXT
+                    if(offsetInt+20 < peopleList.size()){
+                        list.put("nextOffset", offsetInt + 20);
+                    }
                     return new ModelAndView(list, "Home.html");
                 }),
                 new MustacheTemplateEngine()
-        );
+        );//end "/"
 
         Spark.get(
                 "/person",
@@ -68,6 +80,8 @@ public class Main {
 
                 new MustacheTemplateEngine()
 
-        );
-    }
-}
+        );//end "/person"
+
+    }//end main()
+
+}//end class Main
